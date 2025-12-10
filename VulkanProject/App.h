@@ -11,17 +11,16 @@
 #include <string>
 
 #ifndef NDEBUG
-const bool ENABLE_VALIDATION = false;
-#else
 const bool ENABLE_VALIDATION = true;
+#else
+const bool ENABLE_VALIDATION = false;
 #endif
 
 const uint32_t REQ_VULKAN_VERSION = VK_API_VERSION_1_0;
 const uint32_t WIDTH = 1600;
 const uint32_t HEIGHT = 900;
-const float DEFAULT_QUEUE_PRIORITY = 1.0f;
 
-const VkPhysicalDeviceFeatures REQUIRED_DEVICE_FEATURES{};
+inline const VkPhysicalDeviceFeatures REQUIRED_DEVICE_FEATURES{};
 const std::vector<const char*> ENABLED_VALIDATION_LAYERS{
 	"VK_LAYER_KHRONOS_validation"
 };

@@ -22,14 +22,18 @@ void App::getQueueFamilyIndices(QueueFamilyIndices* pIndices) {
 	}
 	for (size_t i = 0; i < queueFamilyCount; i++) {
 		if (props.at(i).queueFlags & VK_QUEUE_COMPUTE_BIT) {
-			pIndices->computeFamily = i;
-			break;
+			if (i != pIndices->graphicsFamily.value()) {
+				pIndices->computeFamily = i;
+				break;
+			}
 		}
 	}
 	for (size_t i = 0; i < queueFamilyCount; i++) {
 		if (props.at(i).queueFlags & VK_QUEUE_TRANSFER_BIT) {
-			pIndices->transferFamily = i;
-			break;
+			if (i != pIndices->graphicsFamily.value() && i != pIndices->computeFamily.value()) {
+				pIndices->transferFamily = i;
+				break;
+			}
 		}
 	}
 }
@@ -107,13 +111,15 @@ void App::init() {
 	getMostSuitablePhysicalDevice(&m_physDevice);
 	getQueueFamilyIndices(&m_queueFamilyIndices);
 
+	float queuePriority = 1.0f;
+
 	VkDeviceQueueCreateInfo graphicsQueueCreateInfo{
 		.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
 		.pNext = nullptr,
 		.flags = 0,
 		.queueFamilyIndex = m_queueFamilyIndices.graphicsFamily.value(),
 		.queueCount = 1,
-		.pQueuePriorities = &DEFAULT_QUEUE_PRIORITY
+		.pQueuePriorities = &queuePriority
 	};
 	VkDeviceQueueCreateInfo computeQueueCreateInfo{
 		.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
@@ -121,7 +127,7 @@ void App::init() {
 		.flags = 0,
 		.queueFamilyIndex = m_queueFamilyIndices.computeFamily.value(),
 		.queueCount = 1,
-		.pQueuePriorities = &DEFAULT_QUEUE_PRIORITY
+		.pQueuePriorities = &queuePriority
 	};
 	VkDeviceQueueCreateInfo transferQueueCreateInfo{
 		.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
@@ -129,7 +135,7 @@ void App::init() {
 		.flags = 0,
 		.queueFamilyIndex = m_queueFamilyIndices.transferFamily.value(),
 		.queueCount = 1,
-		.pQueuePriorities = &DEFAULT_QUEUE_PRIORITY
+		.pQueuePriorities = &queuePriority
 	};
 
 	VkDeviceQueueCreateInfo queues[]{graphicsQueueCreateInfo, computeQueueCreateInfo, transferQueueCreateInfo};
@@ -138,12 +144,15 @@ void App::init() {
 		.pNext = nullptr,
 		.flags = 0,
 		.queueCreateInfoCount = 3,
+		.pQueueCreateInfos = queues,
+		.enabledLayerCount = 0,
+		.ppEnabledLayerNames = nullptr,
 		.enabledExtensionCount = 0,
 		.ppEnabledExtensionNames = nullptr,
 		.pEnabledFeatures = &REQUIRED_DEVICE_FEATURES
 	};
 
-	if (vkCreateDevice(m_physDevice, &createInfo, nullptr, &m_logDevice) != VK_SUCCESS) {
+		if (vkCreateDevice(m_physDevice, &createInfo, nullptr, &m_logDevice) != VK_SUCCESS) {
 		std::runtime_error("Failed to create Vulkan device.");
 	}
 }
