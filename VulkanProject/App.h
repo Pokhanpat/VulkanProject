@@ -8,8 +8,12 @@
 #include <iostream>
 #include <vector>
 #include <optional>
+#include <set>
 #include <string>
+#include <limits>
+#include <algorithm>
 
+#undef max
 #ifndef NDEBUG
 const bool ENABLE_VALIDATION = true;
 #else
@@ -24,6 +28,9 @@ inline const VkPhysicalDeviceFeatures REQUIRED_DEVICE_FEATURES{};
 const std::vector<const char*> ENABLED_VALIDATION_LAYERS{
 	"VK_LAYER_KHRONOS_validation"
 };
+const std::vector<const char*> ENABLED_DEVICE_EXTENSIONS{
+	"VK_KHR_SWAPCHAIN_EXTENSION_NAME"
+};
 
 struct QueueFamilyIndices {
 	std::optional<uint32_t> graphicsFamily;
@@ -31,6 +38,12 @@ struct QueueFamilyIndices {
 	std::optional<uint32_t> transferFamily;
 
 	bool areIndicesSet();
+};
+
+struct SwapChainSupportDetails {
+	VkSurfaceCapabilitiesKHR capabilities;
+	std::vector<VkSurfaceFormatKHR> formats;
+	std::vector<VkPresentModeKHR> presentModes;
 };
 
 class App {
@@ -43,10 +56,18 @@ class App {
 		VkDevice m_logDevice;
 		QueueFamilyIndices m_queueFamilyIndices;
 		VkSurfaceKHR m_surface;
+		VkQueue m_graphicsQueue;
+		VkSwapchainKHR m_swapChain;
+		std::vector<VkImage> m_swapChainImages;
+		VkFormat m_swapChainImageFormat;
+		VkExtent2D m_swapChainExtent;
 
 		void init();
 		void loop();
 		void cleanup();
+		void querySwapChainSupportDetails(SwapChainSupportDetails* pDetails);
 		void getQueueFamilyIndices(QueueFamilyIndices* pIndices);
 		void getMostSuitablePhysicalDevice(VkPhysicalDevice* pDevice);
+
+		VkExtent2D getDesiredSwapChainExtent(VkSurfaceCapabilitiesKHR capabilities);
 };
