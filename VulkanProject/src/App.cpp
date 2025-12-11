@@ -191,9 +191,6 @@ void App::init() {
 	.hwnd = glfwGetWin32Window(m_pWindow)
 	};
 
-	if (vkCreateWin32SurfaceKHR(m_instance, &surfaceCreateInfo, nullptr, &m_surface) != VK_SUCCESS) {
-		throw std::runtime_error("Failed to Create Windows API Surface");
-	}
 	if (glfwCreateWindowSurface(m_instance, m_pWindow, nullptr, &m_surface) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create GLFW Surface");
 	}
@@ -323,9 +320,16 @@ void App::init() {
 		if (vkCreateImageView(m_logDevice, &IVCreateInfo, nullptr, &m_swapChainImageViews.at(i)) != VK_SUCCESS) {
 			throw std::runtime_error("Failed to create Image Views.");
 		}
-
-
 	}
+
+	std::vector<char> vertShader = ShaderCompile::readShader("testvert.spv");
+	std::vector<char> fragShader = ShaderCompile::readShader("testfrag.spv");
+
+	VkShaderModule vertShaderModule = ShaderCompile::createShaderModule(m_logDevice, vertShader);
+	VkShaderModule fragShaderModule = ShaderCompile::createShaderModule(m_logDevice, fragShader);
+
+	vkDestroyShaderModule(m_logDevice, vertShaderModule, nullptr);
+	vkDestroyShaderModule(m_logDevice, fragShaderModule, nullptr);
 }
 
 void App::loop() {

@@ -13,6 +13,8 @@
 #include <limits>
 #include <algorithm>
 
+#include "ShaderCompile.h"
+
 #undef max
 #ifndef NDEBUG
 const bool ENABLE_VALIDATION = true;
