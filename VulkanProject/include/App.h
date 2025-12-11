@@ -64,6 +64,7 @@ class App {
 		VkFormat m_swapChainImageFormat;
 		VkExtent2D m_swapChainExtent;
 		std::vector<VkImageView> m_swapChainImageViews;
+		VkPipelineLayout m_pipelineLayout;
 
 		void init();
 		void loop();

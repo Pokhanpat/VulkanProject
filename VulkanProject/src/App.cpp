@@ -328,6 +328,100 @@ void App::init() {
 	VkShaderModule vertShaderModule = ShaderCompile::createShaderModule(m_logDevice, vertShader);
 	VkShaderModule fragShaderModule = ShaderCompile::createShaderModule(m_logDevice, fragShader);
 
+	VkPipelineShaderStageCreateInfo vertexShaderStageInfo{
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+		.pNext = nullptr,
+		.flags = 0,
+		.stage = VK_SHADER_STAGE_VERTEX_BIT,
+		.module = vertShaderModule,
+		.pName = "main",
+		.pSpecializationInfo = nullptr
+	};
+
+	VkPipelineShaderStageCreateInfo fragmentShaderStageInfo{
+	.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+	.pNext = nullptr,
+	.flags = 0,
+	.stage = VK_SHADER_STAGE_FRAGMENT_BIT,
+	.module = fragShaderModule,
+	.pName = "main",
+	.pSpecializationInfo = nullptr
+	};
+
+	VkPipelineShaderStageCreateInfo shaderStages[]{ vertexShaderStageInfo, fragmentShaderStageInfo };
+
+	VkPipelineVertexInputStateCreateInfo{
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+		.pNext = nullptr,
+		.flags = 0,
+		.vertexBindingDescriptionCount = 0,
+		.pVertexBindingDescriptions = nullptr,
+		.vertexAttributeDescriptionCount = 0,
+		.pVertexAttributeDescriptions = nullptr
+	};
+
+	VkPipelineInputAssemblyStateCreateInfo inputAssembly{
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
+		.pNext = nullptr,
+		.flags = 0,
+		.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+		.primitiveRestartEnable = VK_FALSE
+	};
+
+	VkViewport viewport{
+		.x = 0.0f,
+		.y = 0.0f,
+		.width = static_cast<float>(m_swapChainExtent.width),
+		.height = static_cast<float>(m_swapChainExtent.height),
+		.minDepth = 0.0f,
+		.maxDepth = 1.0f
+	};
+
+	VkRect2D scissorRect{
+		.offset = {0, 0},
+		.extent = m_swapChainExtent
+	};
+
+	VkPipelineViewportStateCreateInfo viewportStateInfo{
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
+		.pNext = nullptr,
+		.flags = 0,
+		.viewportCount = 1,
+		.pViewports = &viewport,
+		.scissorCount = 1,
+		.pScissors = &scissorRect
+	};
+
+	VkPipelineRasterizationStateCreateInfo rasterizationInfo{
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+		.pNext = nullptr,
+		.flags = 0,
+		.depthClampEnable = VK_FALSE,
+		.rasterizerDiscardEnable = VK_FALSE,
+		.polygonMode = VK_POLYGON_MODE_FILL,
+		.cullMode = VK_CULL_MODE_BACK_BIT,
+		.frontFace = VK_FRONT_FACE_CLOCKWISE,
+		.depthBiasEnable = VK_FALSE,
+		.depthBiasConstantFactor = 0.0f,
+		.depthBiasClamp = 0.0f,
+		.depthBiasSlopeFactor = 0.0f,
+		.lineWidth = 1.0f
+	};
+
+	VkPipelineLayoutCreateInfo pipelineLayoutInfo{
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+		.pNext = nullptr,
+		.flags = 0,
+		.setLayoutCount = 0,
+		.pSetLayouts = nullptr,
+		.pushConstantRangeCount = 0,
+		.pPushConstantRanges = nullptr
+	};
+
+	if (vkCreatePipelineLayout(m_logDevice, &pipelineLayoutInfo, nullptr, &m_pipelineLayout) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to Create Graphics Pipeline Layout");
+	}
+
 	vkDestroyShaderModule(m_logDevice, vertShaderModule, nullptr);
 	vkDestroyShaderModule(m_logDevice, fragShaderModule, nullptr);
 }
@@ -339,6 +433,7 @@ void App::loop() {
 }
 
 void App::cleanup() {
+	vkDestroyPipelineLayout(m_logDevice, m_pipelineLayout, nullptr);
 	for (VkImageView IV : m_swapChainImageViews) {vkDestroyImageView(m_logDevice, IV, nullptr);}
 	vkDestroySwapchainKHR(m_logDevice, m_swapChain, nullptr);
 	vkDestroyDevice(m_logDevice, nullptr);
