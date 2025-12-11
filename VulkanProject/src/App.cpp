@@ -322,6 +322,50 @@ void App::init() {
 		}
 	}
 
+	VkAttachmentDescription colorAttachment{
+		.flags = 0,
+		.format = m_swapChainImageFormat,
+		.samples = VK_SAMPLE_COUNT_1_BIT,
+		.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+		.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+		.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+		.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+		.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+		.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+	};
+
+	VkAttachmentReference colorAttachmentReference{
+		.attachment = 0,
+		.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+	};
+
+	VkSubpassDescription subpass{
+		.flags = 0,
+		.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
+		.inputAttachmentCount = 0,
+		.pInputAttachments = nullptr,
+		.colorAttachmentCount = 1,
+		.pColorAttachments = &colorAttachmentReference,
+		.pResolveAttachments = nullptr,
+		.pDepthStencilAttachment = nullptr,
+		.preserveAttachmentCount = 0,
+		.pPreserveAttachments = nullptr	
+	};
+
+	VkRenderPassCreateInfo renderPassInfo{
+		.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+		.pNext = nullptr,
+		.flags = 0,
+		.attachmentCount = 1,
+		.pAttachments = &colorAttachment,
+		.subpassCount = 1,
+		.pSubpasses = &subpass
+	};
+
+	if (vkCreateRenderPass(m_logDevice, &renderPassInfo, nullptr, &m_renderPass) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to Create Render Pass.");
+	}
+
 	std::vector<char> vertShader = ShaderCompile::readShader("testvert.spv");
 	std::vector<char> fragShader = ShaderCompile::readShader("testfrag.spv");
 
@@ -350,7 +394,7 @@ void App::init() {
 
 	VkPipelineShaderStageCreateInfo shaderStages[]{ vertexShaderStageInfo, fragmentShaderStageInfo };
 
-	VkPipelineVertexInputStateCreateInfo{
+	VkPipelineVertexInputStateCreateInfo vertexInputState{
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
 		.pNext = nullptr,
 		.flags = 0,
@@ -408,6 +452,18 @@ void App::init() {
 		.lineWidth = 1.0f
 	};
 
+	VkPipelineMultisampleStateCreateInfo multisampleInfo{
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
+		.pNext = nullptr,
+		.flags = 0,
+		.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT,
+		.sampleShadingEnable = VK_FALSE,
+		.minSampleShading = 1.0f,
+		.pSampleMask = nullptr,
+		.alphaToCoverageEnable = VK_FALSE,
+		.alphaToOneEnable = VK_FALSE
+	};
+
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo{
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
 		.pNext = nullptr,
@@ -418,8 +474,44 @@ void App::init() {
 		.pPushConstantRanges = nullptr
 	};
 
+	VkPipelineColorBlendAttachmentState colorBlendAtt{
+		.blendEnable = VK_FALSE,
+		.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT
+	};
+
+	VkPipelineColorBlendStateCreateInfo colorBlendState{
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
+		.logicOpEnable = VK_FALSE,
+		.attachmentCount = 1,
+		.pAttachments = &colorBlendAtt
+	};
+
 	if (vkCreatePipelineLayout(m_logDevice, &pipelineLayoutInfo, nullptr, &m_pipelineLayout) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to Create Graphics Pipeline Layout");
+	}
+
+	VkGraphicsPipelineCreateInfo pipelineInfo{
+		.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+		.pNext = nullptr,
+		.flags = 0,
+		.stageCount = 2,
+		.pStages = shaderStages,
+		.pVertexInputState = &vertexInputState,
+		.pInputAssemblyState = &inputAssembly,
+		.pTessellationState = nullptr,
+		.pViewportState = &viewportStateInfo,
+		.pRasterizationState = &rasterizationInfo,
+		.pMultisampleState = &multisampleInfo,
+		.pDepthStencilState = nullptr,
+		.pColorBlendState = &colorBlendState,
+		.pDynamicState = nullptr,
+		.layout = m_pipelineLayout,
+		.renderPass = m_renderPass,
+		.subpass = 0,
+	};
+
+	if(vkCreateGraphicsPipelines(m_logDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_pipeline) != VK_SUCCESS){
+		throw std::runtime_error("Failed to create graphics pipeline.");
 	}
 
 	vkDestroyShaderModule(m_logDevice, vertShaderModule, nullptr);
@@ -433,7 +525,9 @@ void App::loop() {
 }
 
 void App::cleanup() {
+	vkDestroyPipeline(m_logDevice, m_pipeline, nullptr);
 	vkDestroyPipelineLayout(m_logDevice, m_pipelineLayout, nullptr);
+	vkDestroyRenderPass(m_logDevice, m_renderPass, nullptr);
 	for (VkImageView IV : m_swapChainImageViews) {vkDestroyImageView(m_logDevice, IV, nullptr);}
 	vkDestroySwapchainKHR(m_logDevice, m_swapChain, nullptr);
 	vkDestroyDevice(m_logDevice, nullptr);

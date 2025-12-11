@@ -54,17 +54,24 @@ class App {
 	private:
 		GLFWwindow* m_pWindow;
 		VkInstance m_instance;
+
+		QueueFamilyIndices m_queueFamilyIndices;
+
 		VkPhysicalDevice m_physDevice;
 		VkDevice m_logDevice;
-		QueueFamilyIndices m_queueFamilyIndices;
+		
 		VkSurfaceKHR m_surface;
 		VkQueue m_graphicsQueue;
+
 		VkSwapchainKHR m_swapChain;
 		std::vector<VkImage> m_swapChainImages;
 		VkFormat m_swapChainImageFormat;
 		VkExtent2D m_swapChainExtent;
 		std::vector<VkImageView> m_swapChainImageViews;
+
+		VkRenderPass m_renderPass;
 		VkPipelineLayout m_pipelineLayout;
+		VkPipeline m_pipeline;
 
 		void init();
 		void loop();
