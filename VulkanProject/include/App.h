@@ -72,6 +72,8 @@ class App {
 		VkRenderPass m_renderPass;
 		VkPipelineLayout m_pipelineLayout;
 		VkPipeline m_pipeline;
+		std::vector<VkFramebuffer> m_swapChainFramebuffers;
+
 		void initGLFW();
 		void createInstance();
 		void createSurface();
@@ -79,9 +81,12 @@ class App {
 		void createSwapChain();
 		void createRenderPass();
 		void createRenderPipeline();
+		void createFramebuffers();
+
 		void init();
 		void loop();
 		void cleanup();
+
 		void querySwapChainSupportDetails(SwapChainSupportDetails* pDetails);
 		void getQueueFamilyIndices(QueueFamilyIndices* pIndices);
 		void getMostSuitablePhysicalDevice(VkPhysicalDevice* pDevice);

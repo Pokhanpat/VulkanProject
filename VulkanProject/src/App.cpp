@@ -528,6 +528,30 @@ void App::createRenderPipeline() {
 	vkDestroyShaderModule(m_logDevice, fragShaderModule, nullptr);
 }
 
+void App::createFramebuffers() {
+	m_swapChainFramebuffers.resize(m_swapChainImageViews.size());
+	
+	for (size_t i = 0; i < m_swapChainImageViews.size(); i++) {
+		VkImageView attachments[]{
+			m_swapChainImageViews[i]
+		};
+
+		VkFramebufferCreateInfo framebufferInfo{
+			.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+			.renderPass = m_renderPass,
+			.attachmentCount = 1,
+			.pAttachments = attachments,
+			.width = m_swapChainExtent.width,
+			.height = m_swapChainExtent.height,
+			.layers = 1
+		};
+
+		if (vkCreateFramebuffer(m_logDevice, &framebufferInfo, nullptr, &m_swapChainFramebuffers[i]) != VK_SUCCESS) {
+			throw std::runtime_error("Failed to create framebuffer.");
+		}
+	}
+}
+
 void App::init() {
 	initGLFW();
 	createInstance();
@@ -541,6 +565,7 @@ void App::init() {
 
 	createRenderPass();
 	createRenderPipeline();
+	createFramebuffers();
 }
 
 void App::loop() {
@@ -550,6 +575,9 @@ void App::loop() {
 }
 
 void App::cleanup() {
+	for (VkFramebuffer fb : m_swapChainFramebuffers) {
+		vkDestroyFramebuffer(m_logDevice, fb, nullptr);
+	}
 	vkDestroyPipeline(m_logDevice, m_pipeline, nullptr);
 	vkDestroyPipelineLayout(m_logDevice, m_pipelineLayout, nullptr);
 	vkDestroyRenderPass(m_logDevice, m_renderPass, nullptr);
