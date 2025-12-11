@@ -29,7 +29,7 @@ const std::vector<const char*> ENABLED_VALIDATION_LAYERS{
 	"VK_LAYER_KHRONOS_validation"
 };
 const std::vector<const char*> ENABLED_DEVICE_EXTENSIONS{
-	"VK_KHR_SWAPCHAIN_EXTENSION_NAME"
+	"VK_KHR_swapchain"
 };
 
 struct QueueFamilyIndices {
@@ -61,6 +61,7 @@ class App {
 		std::vector<VkImage> m_swapChainImages;
 		VkFormat m_swapChainImageFormat;
 		VkExtent2D m_swapChainExtent;
+		std::vector<VkImageView> m_swapChainImageViews;
 
 		void init();
 		void loop();

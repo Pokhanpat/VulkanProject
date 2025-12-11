@@ -4,7 +4,6 @@ bool QueueFamilyIndices::areIndicesSet() {
 	return graphicsFamily.has_value() && computeFamily.has_value() && transferFamily.has_value();
 }
 
-
 void windowCloseCallback(GLFWwindow* pWin) {
 	glfwSetWindowShouldClose(pWin, GLFW_TRUE);
 }
@@ -61,23 +60,22 @@ VkExtent2D App::getDesiredSwapChainExtent(VkSurfaceCapabilitiesKHR capabilities)
 }
 
 void App::querySwapChainSupportDetails(SwapChainSupportDetails* pDetails) {
-	SwapChainSupportDetails tempDetails;
-	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_physDevice, m_surface, &tempDetails.capabilities);
+	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_physDevice, m_surface, &(pDetails->capabilities));
 
 	uint32_t formatCount = 0;
 	vkGetPhysicalDeviceSurfaceFormatsKHR(m_physDevice, m_surface, &formatCount, nullptr);
 
 	if (formatCount != 0) {
-		tempDetails.formats.resize(formatCount);
-		vkGetPhysicalDeviceSurfaceFormatsKHR(m_physDevice, m_surface, &formatCount, tempDetails.formats.data());
+		pDetails->formats.resize(formatCount);
+		vkGetPhysicalDeviceSurfaceFormatsKHR(m_physDevice, m_surface, &formatCount, pDetails->formats.data());
 	}
 
 	uint32_t presentModeCount = 0;
 	vkGetPhysicalDeviceSurfacePresentModesKHR(m_physDevice, m_surface, &presentModeCount, nullptr);
 
 	if (formatCount != 0) {
-		tempDetails.formats.resize(presentModeCount);
-		vkGetPhysicalDeviceSurfacePresentModesKHR(m_physDevice, m_surface, &presentModeCount, tempDetails.presentModes.data());
+		pDetails->formats.resize(presentModeCount);
+		vkGetPhysicalDeviceSurfacePresentModesKHR(m_physDevice, m_surface, &presentModeCount, pDetails->presentModes.data());
 	}
 }
 
@@ -115,7 +113,7 @@ void App::getMostSuitablePhysicalDevice(VkPhysicalDevice * pDevice) {
 	uint32_t physDeviceCount = 0;
 	vkEnumeratePhysicalDevices(m_instance, &physDeviceCount, nullptr);
 	if (physDeviceCount == 0) {
-		std::runtime_error("Failed to find Vulkan-enabled Graphics Device!");
+		throw std::runtime_error("Failed to find Vulkan-enabled Graphics Device!");
 	}
 	std::vector<VkPhysicalDevice> physDevices(physDeviceCount);
 	vkEnumeratePhysicalDevices(m_instance, &physDeviceCount, physDevices.data());
@@ -144,7 +142,7 @@ void App::run() {
 
 void App::init() {
 	if (glfwInit() != GLFW_TRUE) {
-		std::runtime_error("Failed to initialize GLFW.");
+		throw std::runtime_error("Failed to initialize GLFW.");
 	}
 
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -182,7 +180,7 @@ void App::init() {
 	}
 
 	if (vkCreateInstance(&instanceCreateInfo, nullptr, &m_instance) != VK_SUCCESS) {
-		std::runtime_error("Failed to create Vulkan instance.");
+		throw std::runtime_error("Failed to create Vulkan instance.");
 	}
 
 	VkWin32SurfaceCreateInfoKHR surfaceCreateInfo{
@@ -194,10 +192,10 @@ void App::init() {
 	};
 
 	if (vkCreateWin32SurfaceKHR(m_instance, &surfaceCreateInfo, nullptr, &m_surface) != VK_SUCCESS) {
-		std::runtime_error("Failed to Create Windows API Surface");
+		throw std::runtime_error("Failed to Create Windows API Surface");
 	}
 	if (glfwCreateWindowSurface(m_instance, m_pWindow, nullptr, &m_surface) != VK_SUCCESS) {
-		std::runtime_error("failed to create GLFW Surface");
+		throw std::runtime_error("failed to create GLFW Surface");
 	}
 	
 	getMostSuitablePhysicalDevice(&m_physDevice);
@@ -237,21 +235,22 @@ void App::init() {
 		.flags = 0,
 		.queueCreateInfoCount = 3,
 		.pQueueCreateInfos = queues,
-		.enabledLayerCount = static_cast<uint32_t>(ENABLED_DEVICE_EXTENSIONS.size()),
-		.ppEnabledLayerNames = ENABLED_DEVICE_EXTENSIONS.data(),
-		.enabledExtensionCount = 0,
-		.ppEnabledExtensionNames = nullptr,
+		.enabledLayerCount = 0,
+		.ppEnabledLayerNames = nullptr,
+		.enabledExtensionCount = static_cast<uint32_t>(ENABLED_DEVICE_EXTENSIONS.size()),
+		.ppEnabledExtensionNames = ENABLED_DEVICE_EXTENSIONS.data(),
 		.pEnabledFeatures = &REQUIRED_DEVICE_FEATURES
 	};
 
 	if (vkCreateDevice(m_physDevice, &createInfo, nullptr, &m_logDevice) != VK_SUCCESS) {
-		std::runtime_error("Failed to create Vulkan device.");
+		std::cout << vkCreateDevice(m_physDevice, &createInfo, nullptr, &m_logDevice) << std::endl;
+		throw std::runtime_error("Failed to create Vulkan device.");
 	}
 
 	VkBool32 win32Support = false;
 	vkGetPhysicalDeviceSurfaceSupportKHR(m_physDevice, m_queueFamilyIndices.graphicsFamily.value(), m_surface, &win32Support);
 	if (!win32Support) {
-		std::runtime_error("Graphics device doesn't support the Windows API");
+		throw std::runtime_error("Graphics device doesn't support the Windows API");
 	}
 	vkGetDeviceQueue(m_logDevice, m_queueFamilyIndices.graphicsFamily.value(), 0, &m_graphicsQueue);
 
@@ -290,13 +289,43 @@ void App::init() {
 	};
 
 	if (vkCreateSwapchainKHR(m_logDevice, &swapChainCreateInfo, nullptr, &m_swapChain) != VK_SUCCESS) {
-		std::runtime_error("Failed to create Vulkan swapchain");
+		throw std::runtime_error("Failed to create Vulkan swapchain");
 	}
 
 	vkGetSwapchainImagesKHR(m_logDevice, m_swapChain, &imgCount, nullptr);
 	m_swapChainImages.resize(imgCount);
 	vkGetSwapchainImagesKHR(m_logDevice, m_swapChain, &imgCount, m_swapChainImages.data());
 
+	m_swapChainImageViews.resize(m_swapChainImages.size());
+	for (size_t i = 0; i < m_swapChainImages.size(); i++) {
+		VkImageViewCreateInfo IVCreateInfo{
+			.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+			.pNext = nullptr,
+			.flags = 0,
+			.image = m_swapChainImages.at(i),
+			.viewType = VK_IMAGE_VIEW_TYPE_2D,
+			.format = m_swapChainImageFormat,
+			.components{
+				.r = VK_COMPONENT_SWIZZLE_IDENTITY,
+				.g = VK_COMPONENT_SWIZZLE_IDENTITY,
+				.b = VK_COMPONENT_SWIZZLE_IDENTITY,
+				.a = VK_COMPONENT_SWIZZLE_IDENTITY
+			},
+			.subresourceRange{
+				.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+				.baseMipLevel = 0,
+				.levelCount = 1,
+				.baseArrayLayer = 0,
+				.layerCount = 1
+			}
+		};
+
+		if (vkCreateImageView(m_logDevice, &IVCreateInfo, nullptr, &m_swapChainImageViews.at(i)) != VK_SUCCESS) {
+			throw std::runtime_error("Failed to create Image Views.");
+		}
+
+
+	}
 }
 
 void App::loop() {
@@ -306,6 +335,7 @@ void App::loop() {
 }
 
 void App::cleanup() {
+	for (VkImageView IV : m_swapChainImageViews) {vkDestroyImageView(m_logDevice, IV, nullptr);}
 	vkDestroySwapchainKHR(m_logDevice, m_swapChain, nullptr);
 	vkDestroyDevice(m_logDevice, nullptr);
 	vkDestroySurfaceKHR(m_instance, m_surface, nullptr);

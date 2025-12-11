@@ -105,7 +105,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>C:\Users\smari\Documents\Visual Studio 18\Libraries\glm;C:\Users\smari\Documents\Visual Studio 18\Libraries\glfw-3.4.bin.WIN64\include;C:\VulkanSDK\1.4.328.1\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\smari\Documents\Visual Studio 18\Libraries\glm;C:\Users\smari\Documents\Visual Studio 18\Libraries\glfw-3.4.bin.WIN64\include;C:\VulkanSDK\1.4.328.1\Include;C:\Users\smari\source\repos\VulkanProject\VulkanProject\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -126,7 +126,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>C:\Users\smari\Documents\Visual Studio 18\Libraries\glm;C:\Users\smari\Documents\Visual Studio 18\Libraries\glfw-3.4.bin.WIN64\include;C:\VulkanSDK\1.4.328.1\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\smari\Documents\Visual Studio 18\Libraries\glm;C:\Users\smari\Documents\Visual Studio 18\Libraries\glfw-3.4.bin.WIN64\include;C:\VulkanSDK\1.4.328.1\Include;C:\Users\smari\source\repos\VulkanProject\VulkanProject\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -139,11 +139,15 @@
     </ProjectReference>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="App.cpp" />
-    <ClCompile Include="Main.cpp" />
+    <ClInclude Include="include\App.h" />
+    <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="App.h" />
+    <ResourceCompile Include="VulkanProject.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\App.cpp" />
+    <ClCompile Include="src\Main.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
