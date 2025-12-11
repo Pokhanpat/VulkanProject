@@ -74,6 +74,9 @@ class App {
 		VkPipeline m_pipeline;
 		std::vector<VkFramebuffer> m_swapChainFramebuffers;
 
+		VkCommandPool m_cmdPool;
+		VkCommandBuffer m_cmdBuffer;
+
 		void initGLFW();
 		void createInstance();
 		void createSurface();
@@ -82,9 +85,14 @@ class App {
 		void createRenderPass();
 		void createRenderPipeline();
 		void createFramebuffers();
-
+		void createCommandBuffer();
 		void init();
+
+		void recordCommandBuffer(uint32_t imgIndex);
+		void draw();
 		void loop();
+
+
 		void cleanup();
 
 		void querySwapChainSupportDetails(SwapChainSupportDetails* pDetails);
