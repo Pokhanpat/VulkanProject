@@ -72,7 +72,13 @@ class App {
 		VkRenderPass m_renderPass;
 		VkPipelineLayout m_pipelineLayout;
 		VkPipeline m_pipeline;
-
+		void initGLFW();
+		void createInstance();
+		void createSurface();
+		void createDevice();
+		void createSwapChain();
+		void createRenderPass();
+		void createRenderPipeline();
 		void init();
 		void loop();
 		void cleanup();

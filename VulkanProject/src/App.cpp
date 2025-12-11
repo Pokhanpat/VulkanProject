@@ -140,7 +140,7 @@ void App::run() {
 	cleanup();
 }
 
-void App::init() {
+void App::initGLFW() {
 	if (glfwInit() != GLFW_TRUE) {
 		throw std::runtime_error("Failed to initialize GLFW.");
 	}
@@ -149,7 +149,9 @@ void App::init() {
 	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 	m_pWindow = glfwCreateWindow(WIDTH, HEIGHT, "Test App", nullptr, nullptr);
 	glfwSetWindowCloseCallback(m_pWindow, windowCloseCallback);
+}
 
+void App::createInstance() {
 	VkApplicationInfo appInfo{
 	.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
 	.pApplicationName = "Test App",
@@ -182,7 +184,9 @@ void App::init() {
 	if (vkCreateInstance(&instanceCreateInfo, nullptr, &m_instance) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create Vulkan instance.");
 	}
+}
 
+void App::createSurface() {
 	VkWin32SurfaceCreateInfoKHR surfaceCreateInfo{
 	.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
 	.pNext = nullptr,
@@ -194,10 +198,9 @@ void App::init() {
 	if (glfwCreateWindowSurface(m_instance, m_pWindow, nullptr, &m_surface) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create GLFW Surface");
 	}
-	
-	getMostSuitablePhysicalDevice(&m_physDevice);
-	getQueueFamilyIndices(&m_queueFamilyIndices);
+}
 
+void App::createDevice() {
 	float queuePriority = 1.0f;
 
 	VkDeviceQueueCreateInfo graphicsQueueCreateInfo{
@@ -225,7 +228,7 @@ void App::init() {
 		.pQueuePriorities = &queuePriority
 	};
 
-	VkDeviceQueueCreateInfo queues[]{graphicsQueueCreateInfo, computeQueueCreateInfo, transferQueueCreateInfo};
+	VkDeviceQueueCreateInfo queues[]{ graphicsQueueCreateInfo, computeQueueCreateInfo, transferQueueCreateInfo };
 	VkDeviceCreateInfo createInfo{
 		.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
 		.pNext = nullptr,
@@ -250,7 +253,9 @@ void App::init() {
 		throw std::runtime_error("Graphics device doesn't support the Windows API");
 	}
 	vkGetDeviceQueue(m_logDevice, m_queueFamilyIndices.graphicsFamily.value(), 0, &m_graphicsQueue);
+}
 
+void App::createSwapChain() {
 	SwapChainSupportDetails swapChainDetails;
 	querySwapChainSupportDetails(&swapChainDetails);
 
@@ -262,8 +267,8 @@ void App::init() {
 	m_swapChainExtent = extent;
 
 	uint32_t imgCount = swapChainDetails.capabilities.minImageCount + 1;
-	if (swapChainDetails.capabilities.maxImageCount > 0 && imgCount > swapChainDetails.capabilities.maxImageCount) {imgCount--;}
-	
+	if (swapChainDetails.capabilities.maxImageCount > 0 && imgCount > swapChainDetails.capabilities.maxImageCount) { imgCount--; }
+
 	VkSwapchainCreateInfoKHR swapChainCreateInfo{
 		.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
 		.pNext = nullptr,
@@ -321,7 +326,9 @@ void App::init() {
 			throw std::runtime_error("Failed to create Image Views.");
 		}
 	}
+}
 
+void App::createRenderPass() {
 	VkAttachmentDescription colorAttachment{
 		.flags = 0,
 		.format = m_swapChainImageFormat,
@@ -349,7 +356,7 @@ void App::init() {
 		.pResolveAttachments = nullptr,
 		.pDepthStencilAttachment = nullptr,
 		.preserveAttachmentCount = 0,
-		.pPreserveAttachments = nullptr	
+		.pPreserveAttachments = nullptr
 	};
 
 	VkRenderPassCreateInfo renderPassInfo{
@@ -365,6 +372,9 @@ void App::init() {
 	if (vkCreateRenderPass(m_logDevice, &renderPassInfo, nullptr, &m_renderPass) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to Create Render Pass.");
 	}
+}
+
+void App::createRenderPipeline() {
 
 	std::vector<char> vertShader = ShaderCompile::readShader("testvert.spv");
 	std::vector<char> fragShader = ShaderCompile::readShader("testfrag.spv");
@@ -510,12 +520,27 @@ void App::init() {
 		.subpass = 0,
 	};
 
-	if(vkCreateGraphicsPipelines(m_logDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_pipeline) != VK_SUCCESS){
+	if (vkCreateGraphicsPipelines(m_logDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_pipeline) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create graphics pipeline.");
 	}
 
 	vkDestroyShaderModule(m_logDevice, vertShaderModule, nullptr);
 	vkDestroyShaderModule(m_logDevice, fragShaderModule, nullptr);
+}
+
+void App::init() {
+	initGLFW();
+	createInstance();
+	createSurface();
+	
+	getMostSuitablePhysicalDevice(&m_physDevice);
+	getQueueFamilyIndices(&m_queueFamilyIndices);
+
+	createDevice();
+	createSwapChain();
+
+	createRenderPass();
+	createRenderPipeline();
 }
 
 void App::loop() {
