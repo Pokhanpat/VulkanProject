@@ -77,6 +77,10 @@ class App {
 		VkCommandPool m_cmdPool;
 		VkCommandBuffer m_cmdBuffer;
 
+		VkSemaphore m_imageAvailableSem;
+		VkSemaphore m_renderFinishedSem;
+		VkFence m_inFlightFence;
+
 		void initGLFW();
 		void createInstance();
 		void createSurface();
@@ -86,12 +90,12 @@ class App {
 		void createRenderPipeline();
 		void createFramebuffers();
 		void createCommandBuffer();
+		void initSynchronization();
 		void init();
 
-		void recordCommandBuffer(uint32_t imgIndex);
+		void recordCommandBuffer(VkCommandBuffer cmdbuffer, uint32_t imgIndex);
 		void draw();
 		void loop();
-
 
 		void cleanup();
 

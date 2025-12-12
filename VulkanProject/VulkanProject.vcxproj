@@ -141,7 +141,6 @@
   <ItemGroup>
     <ClInclude Include="include\App.h" />
     <ClInclude Include="include\ShaderCompile.h" />
-    <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="VulkanProject.rc" />

@@ -359,6 +359,15 @@ void App::createRenderPass() {
 		.pPreserveAttachments = nullptr
 	};
 
+	VkSubpassDependency dependency{
+		.srcSubpass = VK_SUBPASS_EXTERNAL,
+		.dstSubpass = 0,
+		.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+		.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+		.srcAccessMask = 0,
+		.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT
+	};
+
 	VkRenderPassCreateInfo renderPassInfo{
 		.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
 		.pNext = nullptr,
@@ -366,7 +375,9 @@ void App::createRenderPass() {
 		.attachmentCount = 1,
 		.pAttachments = &colorAttachment,
 		.subpassCount = 1,
-		.pSubpasses = &subpass
+		.pSubpasses = &subpass,
+		.dependencyCount = 1,
+		.pDependencies = &dependency
 	};
 
 	if (vkCreateRenderPass(m_logDevice, &renderPassInfo, nullptr, &m_renderPass) != VK_SUCCESS) {
@@ -575,6 +586,23 @@ void App::createCommandBuffer() {
 	}
 }
 
+void App::initSynchronization(){
+	VkSemaphoreCreateInfo semaphoreInfo{
+		.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO
+	};
+
+	VkFenceCreateInfo fenceInfo{
+		.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+		.flags = VK_FENCE_CREATE_SIGNALED_BIT
+	};
+
+	if (vkCreateSemaphore(m_logDevice, &semaphoreInfo, nullptr, &m_imageAvailableSem) != VK_SUCCESS ||
+		vkCreateSemaphore(m_logDevice, &semaphoreInfo, nullptr, &m_renderFinishedSem) != VK_SUCCESS ||
+		vkCreateFence(m_logDevice, &fenceInfo, nullptr, &m_inFlightFence) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to establish sync devices");
+	}
+}
+
 void App::init() {
 	initGLFW();
 	createInstance();
@@ -591,14 +619,16 @@ void App::init() {
 
 	createFramebuffers();
 	createCommandBuffer();
+	
+	initSynchronization();
 }
 
-void App::recordCommandBuffer(uint32_t imgIndex) {
+void App::recordCommandBuffer(VkCommandBuffer cmdbuffer, uint32_t imgIndex) {
 	VkCommandBufferBeginInfo beginInfo{
 		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO
 	};
 
-	if (vkBeginCommandBuffer(m_cmdBuffer, &beginInfo) != VK_SUCCESS) {
+	if (vkBeginCommandBuffer(cmdbuffer, &beginInfo) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to reset command buffer");
 	}
 
@@ -630,36 +660,82 @@ void App::recordCommandBuffer(uint32_t imgIndex) {
 		.extent = m_swapChainExtent
 	};
 
-	vkCmdBeginRenderPass(m_cmdBuffer, &rPBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-	vkCmdBindPipeline(m_cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
-	vkCmdSetViewport(m_cmdBuffer, 0, 1, &viewport);
-	vkCmdSetScissor(m_cmdBuffer, 0, 1, &scissor);
-	vkCmdDraw(m_cmdBuffer, 3, 1, 0, 0);
-	vkCmdEndRenderPass(m_cmdBuffer);
+	vkCmdBeginRenderPass(cmdbuffer, &rPBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+	vkCmdBindPipeline(cmdbuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
+	vkCmdSetViewport(cmdbuffer, 0, 1, &viewport);
+	vkCmdSetScissor(cmdbuffer, 0, 1, &scissor);
+	vkCmdDraw(cmdbuffer, 3, 1, 0, 0);
+	vkCmdEndRenderPass(cmdbuffer);
 
-	if (vkEndCommandBuffer(m_cmdBuffer) != VK_SUCCESS) {
+	if (vkEndCommandBuffer(cmdbuffer) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to record command buffer");
 	}
 }
 
 void App::draw() {
+	vkWaitForFences(m_logDevice, 1, &m_inFlightFence, VK_TRUE, UINT64_MAX);
+	vkResetFences(m_logDevice, 1, &m_inFlightFence);
 
+	uint32_t index;
+	vkAcquireNextImageKHR(m_logDevice, m_swapChain, UINT64_MAX, m_imageAvailableSem, VK_NULL_HANDLE, &index);
+	vkResetCommandBuffer(m_cmdBuffer, 0);
+	recordCommandBuffer(m_cmdBuffer, index);
+
+	VkSemaphore waitSem[]{ m_imageAvailableSem };
+	VkSemaphore signalSem[]{ m_renderFinishedSem };
+	VkPipelineStageFlags waitStage[]{ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+
+	VkSubmitInfo submitInfo{
+		.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+		.waitSemaphoreCount = 1,
+		.pWaitSemaphores = waitSem,
+		.pWaitDstStageMask = waitStage,
+		.commandBufferCount = 1,
+		.pCommandBuffers = &m_cmdBuffer,
+		.signalSemaphoreCount = 1,
+		.pSignalSemaphores = signalSem
+	};
+
+	if (vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, m_inFlightFence) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to submit commands to graphics queue.");
+	}
+
+	VkSwapchainKHR swapChains[]{ m_swapChain };
+
+	VkPresentInfoKHR presentInfo{
+		.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+		.waitSemaphoreCount = 1,
+		.pWaitSemaphores = signalSem,
+		.swapchainCount = 1,
+		.pSwapchains = swapChains,
+		.pImageIndices = &index
+	};
+
+	vkQueuePresentKHR(m_graphicsQueue, &presentInfo);
 }
 
 void App::loop() {
 	while (!glfwWindowShouldClose(m_pWindow)) {
 		glfwPollEvents();
+		draw();
 	}
 }
 
 void App::cleanup() {
+	vkDestroySemaphore(m_logDevice, m_imageAvailableSem, nullptr);
+	vkDestroySemaphore(m_logDevice, m_renderFinishedSem, nullptr);
+	vkDestroyFence(m_logDevice, m_inFlightFence, nullptr);
+
 	vkDestroyCommandPool(m_logDevice, m_cmdPool, nullptr);
 	for (VkFramebuffer fb : m_swapChainFramebuffers) {vkDestroyFramebuffer(m_logDevice, fb, nullptr);}
+
 	vkDestroyPipeline(m_logDevice, m_pipeline, nullptr);
 	vkDestroyPipelineLayout(m_logDevice, m_pipelineLayout, nullptr);
 	vkDestroyRenderPass(m_logDevice, m_renderPass, nullptr);
+
 	for (VkImageView IV : m_swapChainImageViews) {vkDestroyImageView(m_logDevice, IV, nullptr);}
 	vkDestroySwapchainKHR(m_logDevice, m_swapChain, nullptr);
+
 	vkDestroyDevice(m_logDevice, nullptr);
 	vkDestroySurfaceKHR(m_instance, m_surface, nullptr);
 	vkDestroyInstance(m_instance, nullptr);
