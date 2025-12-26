@@ -1,107 +1,61 @@
-#define VK_USE_PLATFORM_WIN32_KHR
+#pragma once
+#include "Vertex.h"
+#include "ShaderCompile.h"
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
-#define GLFW_EXPOSE_NATIVE_WIN32
-#include <GLFW/glfw3native.h>
 
-#include <stdexcept>
-#include <iostream>
 #include <vector>
-#include <optional>
-#include <set>
-#include <string>
-#include <limits>
-#include <algorithm>
+#include <iostream>
+#include <stdexcept>
+#undef UINT32_MAX
 
-#include "ShaderCompile.h"
-
-#undef max
 #ifndef NDEBUG
-const bool ENABLE_VALIDATION = true;
-#else
-const bool ENABLE_VALIDATION = false;
-#endif
-
-const uint32_t REQ_VULKAN_VERSION = VK_API_VERSION_1_0;
-const uint32_t WIDTH = 1600;
-const uint32_t HEIGHT = 900;
-
-inline const VkPhysicalDeviceFeatures REQUIRED_DEVICE_FEATURES{};
 const std::vector<const char*> ENABLED_VALIDATION_LAYERS{
 	"VK_LAYER_KHRONOS_validation"
 };
-const std::vector<const char*> ENABLED_DEVICE_EXTENSIONS{
+#else
+const std::vector<const char*> ENABLED_VALIDATION_LAYERS{};
+#endif
+
+const std::vector<const char*> REQ_INSTANCE_EXTENSIONS{
+	"VK_KHR_surface",
 	"VK_KHR_swapchain"
 };
+const std::vector<const char*> REQ_DEVICE_EXTENSIONS{};
 
-struct QueueFamilyIndices {
-	std::optional<uint32_t> graphicsFamily;
-	std::optional<uint32_t> computeFamily;
-	std::optional<uint32_t> transferFamily;
+constexpr uint32_t UINT32_MAX = 0xffffffff;
 
-	bool areIndicesSet();
-};
+const int WIDTH = 1600;
+const int HEIGHT = 900;
 
-struct SwapChainSupportDetails {
-	VkSurfaceCapabilitiesKHR capabilities;
-	std::vector<VkSurfaceFormatKHR> formats;
-	std::vector<VkPresentModeKHR> presentModes;
+const uint32_t REQUIRED_VULKAN_VER = VK_API_VERSION_1_3;
+inline const VkAllocationCallbacks* P_DEFAULT_ALLOCATOR = nullptr;
+const float DEFAULT_QUEUE_PRIORITY = 1.0f;
+
+struct QueueFamilyIndeces {
+	uint32_t graphicsIndex{UINT32_MAX}; //hopefully no ones computer has like 4 billion fucking queue families
+	uint32_t computeIndex{ UINT32_MAX }; //bc thatd cause an error
+	uint32_t transferIndex{ UINT32_MAX };
 };
 
 class App {
-	public:
-		void run();
-	private:
-		GLFWwindow* m_pWindow;
-		VkInstance m_instance;
+public:
+	void run();
 
-		QueueFamilyIndices m_queueFamilyIndices;
+private:
+	GLFWwindow* m_pWin;
+	VkInstance m_instance;
+	VkSurfaceKHR m_surface;
+	VkPhysicalDevice m_physDevice;
+	QueueFamilyIndeces m_indices;
+	VkDevice m_device;
+	VkSwapchainKHR m_swapchain;
+	VkRenderPass m_graphicsPass;
+	VkPipelineLayout m_pipelineLayout;
 
-		VkPhysicalDevice m_physDevice;
-		VkDevice m_logDevice;
-		
-		VkSurfaceKHR m_surface;
-		VkQueue m_graphicsQueue;
+	void createDevice();
+	void init();
 
-		VkSwapchainKHR m_swapChain;
-		std::vector<VkImage> m_swapChainImages;
-		VkFormat m_swapChainImageFormat;
-		VkExtent2D m_swapChainExtent;
-		std::vector<VkImageView> m_swapChainImageViews;
-
-		VkRenderPass m_renderPass;
-		VkPipelineLayout m_pipelineLayout;
-		VkPipeline m_pipeline;
-		std::vector<VkFramebuffer> m_swapChainFramebuffers;
-
-		VkCommandPool m_cmdPool;
-		VkCommandBuffer m_cmdBuffer;
-
-		VkSemaphore m_imageAvailableSem;
-		VkSemaphore m_renderFinishedSem;
-		VkFence m_inFlightFence;
-
-		void initGLFW();
-		void createInstance();
-		void createSurface();
-		void createDevice();
-		void createSwapChain();
-		void createRenderPass();
-		void createRenderPipeline();
-		void createFramebuffers();
-		void createCommandBuffer();
-		void initSynchronization();
-		void init();
-
-		void recordCommandBuffer(VkCommandBuffer cmdbuffer, uint32_t imgIndex);
-		void draw();
-		void loop();
-
-		void cleanup();
-
-		void querySwapChainSupportDetails(SwapChainSupportDetails* pDetails);
-		void getQueueFamilyIndices(QueueFamilyIndices* pIndices);
-		void getMostSuitablePhysicalDevice(VkPhysicalDevice* pDevice);
-
-		VkExtent2D getDesiredSwapChainExtent(VkSurfaceCapabilitiesKHR capabilities);
+	void loop();
+	void cleanup();
 };

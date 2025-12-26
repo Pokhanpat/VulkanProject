@@ -12,6 +12,6 @@ const std::filesystem::path SHADER_DIRECTORY = std::filesystem::current_path() /
 
 namespace ShaderCompile {
 	void compileShader(const std::string& filename);
-	std::vector<char> readShader(const std::string& filename);
+	std::vector<char> readCompiledShader(const std::string& filename);
 	VkShaderModule createShaderModule(VkDevice& device, const std::vector<char>& code);
 }

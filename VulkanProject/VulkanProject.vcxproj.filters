@@ -18,10 +18,13 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\ShaderCompile.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="include\App.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\ShaderCompile.h">
+    <ClInclude Include="include\Vertex.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -34,18 +37,18 @@
     <ClCompile Include="src\Main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\App.cpp">
+    <ClCompile Include="src\ShaderCompile.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\ShaderCompile.cpp">
+    <ClCompile Include="src\App.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="shaders\testshader.vert">
+    <None Include="shaders\testfrag.frag">
       <Filter>Shader Files</Filter>
     </None>
-    <None Include="shaders\testshader.frag">
+    <None Include="shaders\testvert.vert">
       <Filter>Shader Files</Filter>
     </None>
   </ItemGroup>

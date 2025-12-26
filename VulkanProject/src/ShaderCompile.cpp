@@ -1,6 +1,6 @@
 #include "ShaderCompile.h"
 
-void ShaderCompile::compileShader(const std::string& filename) {
+void ShaderCompile::compileShader(const std::string& filename) { //Won't work if glslc.exe from the VulkanSDK hasn't been added to path
 	std::string input_command{ "glslc " };
 	input_command.append((SHADER_DIRECTORY / filename).generic_string());
 	input_command.append(" -o ");
@@ -12,7 +12,7 @@ void ShaderCompile::compileShader(const std::string& filename) {
 	system(input_command.c_str());
 }
 
-std::vector<char> ShaderCompile::readShader(const std::string& filename) {
+std::vector<char> ShaderCompile::readCompiledShader(const std::string& filename) {
 	std::ifstream file((SHADER_DIRECTORY/"compiled"/filename).generic_string(), std::ios::ate | std::ios::binary);
 	if (!file.is_open()) { throw std::runtime_error("Failed to open file."); }
 
