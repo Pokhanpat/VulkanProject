@@ -54,8 +54,11 @@ private:
 	VkRenderPass m_graphicsPass;
 	VkPipelineLayout m_pipelineLayout;
 	VkPipeline m_pipeline;
+	VkShaderModule m_fragShaderModule;
+	VkShaderModule m_vertShaderModule;
 
 	void createDevice();
+	void createPipeline();
 	void init();
 
 	void loop();
