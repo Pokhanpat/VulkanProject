@@ -92,6 +92,7 @@ void App::createDevice(){
 		queueCreateInfos.push_back(transferQueueCreateInfo);
 	}
 
+
 	VkDeviceCreateInfo deviceCreateInfo{
 		.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
 		.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size()),
@@ -107,7 +108,9 @@ void App::createDevice(){
 }
 
 void App::init(){
-	glfwInit();
+	if (glfwInit() != GL_TRUE) {
+		throw std::runtime_error("Failed to initialize GLFW");
+	};
 
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
@@ -115,7 +118,6 @@ void App::init(){
 	m_pWin = glfwCreateWindow(WIDTH, HEIGHT, "Test", nullptr, nullptr);
 	uint32_t glfwExtensionCount;
 	const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-
 	VkApplicationInfo applicationInfo{
 		.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
 		.pApplicationName = "Test",
@@ -181,17 +183,18 @@ void App::init(){
 	};
 
 
+
 	VkAttachmentReference depthAttachmentRef{
 		.attachment = 1,
-		.layout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL
+		.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
 	};
 	VkAttachmentDescription depthAttachmentDesc{
 		.format = VK_FORMAT_D32_SFLOAT,
 		.samples = VK_SAMPLE_COUNT_1_BIT,
 		.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
 		.storeOp = VK_ATTACHMENT_STORE_OP_NONE,
-		.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-		.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+		.initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+		.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
 	};
 
 	VkSubpassDescription graphicsSubpassDesc{
@@ -240,6 +243,19 @@ void App::init(){
 		.pName = "main"
 	};
 
+	ShaderCompile::compileShader("testfrag.frag");
+	std::vector<char> fragShaderCode = ShaderCompile::readCompiledShader("testfrag.spv");
+	VkShaderModule fragShaderModule = ShaderCompile::createShaderModule(m_device, fragShaderCode);
+
+	VkPipelineShaderStageCreateInfo fragShaderStageInfo{
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+		.stage = VK_SHADER_STAGE_FRAGMENT_BIT,
+		.module = fragShaderModule,
+		.pName = "main"
+	};
+
+	std::vector<VkPipelineShaderStageCreateInfo> stages{ vertShaderStageInfo, fragShaderStageInfo };
+
 	//feeding in vertex data from a vertex buffer using Vertex struct objects
 
 	VkVertexInputBindingDescription bindingDesc{
@@ -279,12 +295,13 @@ void App::init(){
 
 	VkPipelineRasterizationStateCreateInfo rasterizationState{
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
-		.depthClampEnable = VK_TRUE,
+		.depthClampEnable = VK_FALSE,
 		.rasterizerDiscardEnable = VK_FALSE,
 		.polygonMode = VK_POLYGON_MODE_FILL,
 		.cullMode = VK_CULL_MODE_NONE,				//disabling backface culling temporarily bc im dumb (CHANGE THIS LATER!!!!)
 		.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
-		.depthBiasEnable = VK_FALSE
+		.depthBiasEnable = VK_FALSE,
+		.lineWidth = 1.0f
 	};
 
 	VkPipelineMultisampleStateCreateInfo multisampleState{
@@ -302,9 +319,21 @@ void App::init(){
 		.stencilTestEnable = VK_FALSE
 	};
 
+	VkPipelineColorBlendAttachmentState colorBlendAttachState{
+		.blendEnable = VK_FALSE,
+		.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_COLOR,
+		.dstColorBlendFactor = VK_BLEND_FACTOR_DST_COLOR,
+		.colorBlendOp = VK_BLEND_OP_ADD,
+		.srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
+		.dstAlphaBlendFactor = VK_BLEND_FACTOR_DST_ALPHA,
+		.alphaBlendOp = VK_BLEND_OP_ADD,
+		.colorWriteMask = VK_COLOR_COMPONENT_R_BIT & VK_COLOR_COMPONENT_G_BIT & VK_COLOR_COMPONENT_B_BIT & VK_COLOR_COMPONENT_A_BIT
+	};
+
 	VkPipelineColorBlendStateCreateInfo colorBlendState{
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
-		.attachmentCount = 0
+		.attachmentCount = 1,
+		.pAttachments = &colorBlendAttachState
 	};
 
 	std::vector<VkDynamicState> dynamicVars{
@@ -320,8 +349,35 @@ void App::init(){
 	
 	VkPipelineLayoutCreateInfo layoutInfo{
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-
+		.setLayoutCount = 0,
+		.pSetLayouts = nullptr,
+		.pushConstantRangeCount = 0,
+		.pPushConstantRanges = nullptr
 	};
+
+	vkCreatePipelineLayout(m_device, &layoutInfo, P_DEFAULT_ALLOCATOR, &m_pipelineLayout);
+
+	VkGraphicsPipelineCreateInfo graphicsPipelineInfo{
+		.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+		.stageCount = static_cast<uint32_t>(stages.size()),
+		.pStages = stages.data(),
+		.pVertexInputState = &vertexInputState,
+		.pInputAssemblyState = &inputAssemblyState,
+		.pTessellationState = nullptr,
+		.pViewportState = &viewportState,
+		.pRasterizationState = &rasterizationState,
+		.pMultisampleState = &multisampleState,
+		.pDepthStencilState = &depthStencilState,
+		.pColorBlendState = &colorBlendState,
+		.pDynamicState = &dynamicState,
+		.layout = m_pipelineLayout,
+		.renderPass = m_graphicsPass,
+		.subpass = 0
+	};
+
+	if (vkCreateGraphicsPipelines(m_device, nullptr, 1, &graphicsPipelineInfo, P_DEFAULT_ALLOCATOR, &m_pipeline) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create graphics pipeline");
+	}
 }
 
 void App::loop() {

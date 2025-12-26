@@ -18,10 +18,11 @@ const std::vector<const char*> ENABLED_VALIDATION_LAYERS{};
 #endif
 
 const std::vector<const char*> REQ_INSTANCE_EXTENSIONS{
-	"VK_KHR_surface",
+	"VK_KHR_surface"
+};
+const std::vector<const char*> REQ_DEVICE_EXTENSIONS{
 	"VK_KHR_swapchain"
 };
-const std::vector<const char*> REQ_DEVICE_EXTENSIONS{};
 
 constexpr uint32_t UINT32_MAX = 0xffffffff;
 
@@ -52,6 +53,7 @@ private:
 	VkSwapchainKHR m_swapchain;
 	VkRenderPass m_graphicsPass;
 	VkPipelineLayout m_pipelineLayout;
+	VkPipeline m_pipeline;
 
 	void createDevice();
 	void init();
