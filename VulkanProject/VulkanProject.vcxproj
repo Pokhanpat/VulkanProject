@@ -140,8 +140,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="include\App.h" />
-    <ClInclude Include="include\Vertex.h" />
     <ClInclude Include="include\ShaderCompile.h" />
+    <ClInclude Include="include\Vertex.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="VulkanProject.rc" />
@@ -152,8 +152,8 @@
     <ClCompile Include="src\App.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="shaders\testfrag.frag" />
-    <None Include="shaders\testvert.vert" />
+    <None Include="shaders\projectionFrag.frag" />
+    <None Include="shaders\projectionVert.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

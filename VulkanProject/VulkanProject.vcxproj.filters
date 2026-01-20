@@ -45,10 +45,10 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="shaders\testfrag.frag">
+    <None Include="shaders\projectionVert.vert">
       <Filter>Shader Files</Filter>
     </None>
-    <None Include="shaders\testvert.vert">
+    <None Include="shaders\projectionFrag.frag">
       <Filter>Shader Files</Filter>
     </None>
   </ItemGroup>
