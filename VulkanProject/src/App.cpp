@@ -57,7 +57,93 @@ void App::setQueueIndices() {
 	}
 };
 
+void App::createRenderPass(){
+	VkAttachmentDescription colorAttachmentDesc{
+		.format = VK_FORMAT_R32G32B32_SFLOAT,
+		.samples = VK_SAMPLE_COUNT_1_BIT,
+		.loadOp = VK_ATTACHMENT_LOAD_OP_NONE,
+		.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+		.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_NONE,
+		.stencilStoreOp = VK_ATTACHMENT_STORE_OP_NONE,
+		.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+		.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+	};
+
+	VkAttachmentDescription depthAttachmentDesc{
+		.format = VK_FORMAT_R32_SFLOAT,
+		.samples = VK_SAMPLE_COUNT_1_BIT,
+		.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD,
+		.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+		.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_NONE,
+		.stencilStoreOp = VK_ATTACHMENT_STORE_OP_NONE,
+		.initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+		.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+	};
+
+	std::vector<VkAttachmentDescription> attachDescs = { colorAttachmentDesc, depthAttachmentDesc };
+
+	VkAttachmentReference colorAttachmentRef{
+		.attachment = 0,
+		.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+	};
+
+	VkAttachmentReference depthAttachmentRef{
+		.attachment = 1,
+		.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+	};
+
+	VkSubpassDescription subpassDesc{
+		.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
+		.inputAttachmentCount = 0,
+		.colorAttachmentCount = 1,
+		.pColorAttachments = &colorAttachmentRef,
+		.pDepthStencilAttachment = &depthAttachmentRef,
+		.preserveAttachmentCount = 0
+	};
+
+	VkRenderPassCreateInfo renderPassInfo{
+		.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+		.attachmentCount = static_cast<uint32_t>(attachDescs.size()),
+		.pAttachments = attachDescs.data(),
+		.subpassCount = 1,
+		.pSubpasses = &subpassDesc
+	};
+
+	if (vkCreateRenderPass(m_device, &renderPassInfo, P_DEFAULT_ALLOC, &m_renderPass) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create Render Pass");
+	}
+}
+
+void App::preparePipelineData() {
+	VkBufferCreateInfo projectionDataBufferInfo{
+	.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+	.size = sizeof(CameraProjectionData),
+	.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+	.sharingMode = VK_SHARING_MODE_EXCLUSIVE //MAKE SURE TO CHANGE THIS IF CAMERA DATA IS USED FOR NON GRAPHICS GPU STUFF
+	};
+
+	vkCreateBuffer(m_device, &projectionDataBufferInfo, P_DEFAULT_ALLOC, &m_projectionDataBuf);
+
+	VkDescriptorSetLayoutBinding lowFreqDescSetLayoutBinding{
+		.binding = BINDING_LOW_FREQ,
+		.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+		.descriptorCount = 1,
+		.stageFlags = VK_SHADER_STAGE_VERTEX_BIT
+	};
+
+	VkDescriptorSetLayoutCreateInfo lowFreqDescSetLayoutInfo{
+		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+		.bindingCount = 1,
+		.pBindings = &lowFreqDescSetLayoutBinding
+	};
+
+	vkCreateDescriptorSetLayout(m_device, &lowFreqDescSetLayoutInfo, P_DEFAULT_ALLOC, &m_lowFreqDescSetLayout);
+}
+
 void App::createProjectionPipeline() {
+	VkSurfaceCapabilitiesKHR surfaceCaps;
+	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_physDevice, m_surface, &surfaceCaps);
+
 	ShaderCompile::compileShader("projectionVert.vert");
 	ShaderCompile::compileShader("projectionFrag.frag");
 	std::vector<char> vertCode{ ShaderCompile::readCompiledShader("projectionVert.spv") };
@@ -82,7 +168,7 @@ void App::createProjectionPipeline() {
 	std::vector<VkPipelineShaderStageCreateInfo> shaderStageInfos{ vertInfo, fragInfo };
 
 	VkVertexInputBindingDescription vertexInputBindingInfo{
-		.binding = 0,
+		.binding = BINDING_VERTEX_BUFFER,
 		.stride = sizeof(Vertex),
 		.inputRate = VK_VERTEX_INPUT_RATE_VERTEX
 	};
@@ -92,6 +178,103 @@ void App::createProjectionPipeline() {
 		.vertexBindingDescriptionCount = 1,
 		.pVertexBindingDescriptions = &vertexInputBindingInfo
 	};
+
+	VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateInfo{
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
+		.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+		.primitiveRestartEnable = VK_FALSE
+	};
+
+	VkPipelineTessellationStateCreateInfo tessellationStateInfo{
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO,
+		.patchControlPoints = 1
+	};
+
+	VkViewport viewport{
+		.x=0.0f,
+		.y=0.0f,
+		.width = static_cast<float>(surfaceCaps.currentExtent.width),
+		.height = static_cast<float>(surfaceCaps.currentExtent.height),
+		.minDepth = 0.0f,
+		.maxDepth = 1.0f
+	};
+
+	VkRect2D scissor{
+		.offset = {
+			.x=0,
+			.y=0
+		},
+		.extent = surfaceCaps.currentExtent
+	};
+
+	VkPipelineViewportStateCreateInfo viewportStateInfo{
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
+		.viewportCount = 1,
+		.pViewports = &viewport,
+		.scissorCount = 1,
+		.pScissors = &scissor
+	};
+
+	VkPipelineRasterizationStateCreateInfo rasterizationStateInfo{
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+		.depthClampEnable = VK_TRUE,
+		.rasterizerDiscardEnable = VK_FALSE,
+		.polygonMode = VK_POLYGON_MODE_FILL,
+		.cullMode = VK_CULL_MODE_NONE, //           *******CHANGE THIS LATER!!!!!!!!*******
+		.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
+		.depthBiasEnable = VK_FALSE
+	};
+
+	VkPipelineMultisampleStateCreateInfo multisampleStateInfo{
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
+		.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT,
+		.sampleShadingEnable = VK_FALSE,
+		.pSampleMask = nullptr
+	};
+
+	VkPipelineDepthStencilStateCreateInfo depthStencilStateInfo{
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
+		.depthTestEnable = VK_TRUE,
+		.depthWriteEnable = VK_TRUE,
+		.depthCompareOp = VK_COMPARE_OP_LESS,
+		.depthBoundsTestEnable = VK_FALSE,
+		.stencilTestEnable = VK_FALSE
+	};
+
+	VkPipelineColorBlendStateCreateInfo colorBlendStateInfo{
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
+		.attachmentCount = 0
+	};
+
+	VkPipelineLayoutCreateInfo pipelineLayoutInfo{
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+		.setLayoutCount = 1,
+		.pSetLayouts = &m_lowFreqDescSetLayout,
+		.pushConstantRangeCount = 0
+	};
+
+
+	vkCreatePipelineLayout(m_device, &pipelineLayoutInfo, P_DEFAULT_ALLOC, &m_pipelineLayout);
+
+	VkGraphicsPipelineCreateInfo pipelineCreateInfo{
+		.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+		.stageCount = static_cast<uint32_t>(shaderStageInfos.size()),
+		.pStages = shaderStageInfos.data(),
+		.pVertexInputState = &vertexInputStateInfo,
+		.pInputAssemblyState = &inputAssemblyStateInfo,
+		.pTessellationState = &tessellationStateInfo,
+		.pViewportState = &viewportStateInfo,
+		.pRasterizationState = &rasterizationStateInfo,
+		.pMultisampleState = &multisampleStateInfo,
+		.pDepthStencilState = &depthStencilStateInfo,
+		.pColorBlendState = &colorBlendStateInfo,
+		.pDynamicState = nullptr,
+		.layout = m_pipelineLayout,
+		.renderPass = m_renderPass,
+		.subpass = 0
+	};
+
+	vkCreateGraphicsPipelines(m_device, VK_NULL_HANDLE, 1, &pipelineCreateInfo, P_DEFAULT_ALLOC, &m_pipeline);
 }
 
 void App::init() {
@@ -219,6 +402,9 @@ void App::init() {
 	m_swapchainImages = std::vector<VkImage>(imageCount);
 	vkGetSwapchainImagesKHR(m_device, m_swapchain, &imageCount, m_swapchainImages.data());
 
+	
+	createRenderPass();
+	preparePipelineData();
 	createProjectionPipeline();
 }
 
@@ -250,6 +436,11 @@ void App::loop() {
 }
 
 void App::cleanup() {
+	vkDestroyPipeline(m_device, m_pipeline, P_DEFAULT_ALLOC);
+	vkDestroyPipelineLayout(m_device, m_pipelineLayout, P_DEFAULT_ALLOC);
+	vkDestroyDescriptorSetLayout(m_device, m_lowFreqDescSetLayout, P_DEFAULT_ALLOC);
+	vkDestroyBuffer(m_device, m_projectionDataBuf, P_DEFAULT_ALLOC);
+	vkDestroyRenderPass(m_device, m_renderPass, P_DEFAULT_ALLOC);
 	vkDestroySwapchainKHR(m_device, m_swapchain, P_DEFAULT_ALLOC);
 	vkDestroyCommandPool(m_device, m_cmdPool, P_DEFAULT_ALLOC);
 	vkDestroyDevice(m_device, P_DEFAULT_ALLOC);

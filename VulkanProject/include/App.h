@@ -1,4 +1,5 @@
 #pragma once
+#include "Camera.h"
 #include "ShaderCompile.h"
 #include "Vertex.h"
 #include <vulkan/vulkan.h>
@@ -31,6 +32,9 @@ constexpr int HEIGHT = 900;
 constexpr uint32_t MIN_VULKAN_API_VERSION = VK_API_VERSION_1_0;
 constexpr VkAllocationCallbacks* P_DEFAULT_ALLOC = nullptr;
 
+constexpr uint32_t BINDING_VERTEX_BUFFER = 0;
+constexpr uint32_t BINDING_LOW_FREQ = 1;
+
 struct QueueIndices {
 	uint32_t graphicsIndex{ UINT32_MAX };
 	uint32_t computeIndex{ UINT32_MAX };
@@ -57,6 +61,12 @@ private:
 	VkShaderModule m_projVertModule;
 	VkShaderModule m_projFragModule;
 
+	VkRenderPass m_renderPass;
+	VkBuffer m_projectionDataBuf;
+	VkDescriptorSetLayout m_lowFreqDescSetLayout;
+	VkPipelineLayout m_pipelineLayout;
+	VkPipeline m_pipeline;
+
 	VkSwapchainKHR m_swapchain;
 	std::vector<VkImage> m_swapchainImages;
 
@@ -65,6 +75,8 @@ private:
 	
 	void setQueueIndices();
 	void chooseMostSuitablePhysicalDevice();
+	void createRenderPass();
+	void preparePipelineData();
 	void createProjectionPipeline();
 	void init();
 	void loop();
