@@ -41,7 +41,7 @@ struct QueueIndices {
 	uint32_t transferIndex{ UINT32_MAX };
 };
 
-class App {
+class Renderer {
 public:
 	void run();
 
@@ -62,11 +62,18 @@ private:
 	VkShaderModule m_projFragModule;
 
 	VkRenderPass m_renderPass;
+	VkImage m_colorAttachImage;
+	VkImage m_depthAttachImage;
+	VkImageView m_colorAttachView;
+	VkImageView m_depthAttachView;
+	VkFramebuffer m_framebuffer;
+
 	VkBuffer m_projectionDataBuf;
 	VkDescriptorSetLayout m_lowFreqDescSetLayout;
 	VkPipelineLayout m_pipelineLayout;
 	VkPipeline m_pipeline;
 
+	VkExtent2D m_surfaceExtent;
 	VkSwapchainKHR m_swapchain;
 	std::vector<VkImage> m_swapchainImages;
 

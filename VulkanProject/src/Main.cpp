@@ -1,7 +1,7 @@
 #include "App.h"
 
 int main() {
-	App app;
+	Renderer app;
 	app.run();
 	return 0;
 }
