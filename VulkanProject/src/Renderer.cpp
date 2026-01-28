@@ -1,4 +1,4 @@
-#include "App.h"
+#include "Renderer.h"
 
 void windowCloseCallback(GLFWwindow* pWin) {
 	glfwSetWindowShouldClose(pWin, GL_TRUE);

@@ -139,7 +139,7 @@
     </ProjectReference>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="include\App.h" />
+    <ClInclude Include="include\Renderer.h" />
     <ClInclude Include="include\Camera.h" />
     <ClInclude Include="include\Object.h" />
     <ClInclude Include="include\Scene.h" />
@@ -154,7 +154,7 @@
     <ClCompile Include="src\Main.cpp" />
     <ClCompile Include="src\Scene.cpp" />
     <ClCompile Include="src\ShaderCompile.cpp" />
-    <ClCompile Include="src\App.cpp" />
+    <ClCompile Include="src\Renderer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\projectionFrag.frag" />
